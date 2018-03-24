@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNet.Identity;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
@@ -11,25 +12,36 @@ using TutorialMVC.Models;
 
 namespace TutorialMVC.Controllers
 {
+    [Authorize]
     public class ProductsController : Controller
     {
-        private ApplicationDbContext db = new ApplicationDbContext();
 
+        private string GetUserId()
+        {
+            return User.Identity.GetUserId();
+        }
+
+        private ApplicationDbContext db = new ApplicationDbContext();
         // GET: Products
         public ActionResult Index()
         {
-            return View(db.Products.ToList());
+
+            string currentUserId = GetUserId();
+            var userProductos = db.Products.Where(p => p.UserId == currentUserId).ToList();
+            return View(userProductos);
         }
 
         // GET: Products/Details/5
         public ActionResult Details(int? id)
         {
+
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Products products = db.Products.Find(id);
-            if (products == null)
+            string currentUserId = GetUserId();
+            if (products == null || products.UserId != currentUserId)
             {
                 return HttpNotFound();
             }
@@ -38,7 +50,7 @@ namespace TutorialMVC.Controllers
 
         // GET: Products/Create
         public ActionResult Create()
-        {
+        {            
             return View();
         }
 
@@ -49,6 +61,8 @@ namespace TutorialMVC.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "ProductID,Description,Brand,Quantity,price")] Products products)
         {
+
+            products.UserId = GetUserId();;
             if (ModelState.IsValid)
             {
                 db.Products.Add(products);
@@ -62,12 +76,13 @@ namespace TutorialMVC.Controllers
         // GET: Products/Edit/5
         public ActionResult Edit(int? id)
         {
+            string currentUserId = GetUserId();
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Products products = db.Products.Find(id);
-            if (products == null)
+            if (products == null || products.UserId != currentUserId)
             {
                 return HttpNotFound();
             }
@@ -81,6 +96,7 @@ namespace TutorialMVC.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "ProductID,Description,Brand,Quantity,price")] Products products)
         {
+            products.UserId = GetUserId();
             if (ModelState.IsValid)
             {
                 db.Entry(products).State = EntityState.Modified;
@@ -93,12 +109,15 @@ namespace TutorialMVC.Controllers
         // GET: Products/Delete/5
         public ActionResult Delete(int? id)
         {
+
+            string currentUserId = GetUserId();
+
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Products products = db.Products.Find(id);
-            if (products == null)
+            if (products == null || products.UserId != currentUserId)
             {
                 return HttpNotFound();
             }
@@ -124,5 +143,9 @@ namespace TutorialMVC.Controllers
             }
             base.Dispose(disposing);
         }
+
+       
     }
+
+
 }
